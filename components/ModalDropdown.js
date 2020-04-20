@@ -4,11 +4,11 @@
 
 'use strict';
 
-import React, {
-  Component,
-} from 'react';
+import PropTypes             from 'prop-types';
+import React, { Component, } from 'react';
 
 import {
+  FlatList,
   StyleSheet,
   Dimensions,
   View,
@@ -20,9 +20,6 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
-
-import ListView from "deprecated-react-native-listview";
-import PropTypes from 'prop-types';
 
 const TOUCHABLE_ELEMENTS = [
   'TouchableHighlight',
@@ -273,34 +270,35 @@ export default class ModalDropdown extends Component {
       this.hide();
     }
   };
-
+  
   _renderLoading() {
     return (
-      <ActivityIndicator size='small'/>
+        <ActivityIndicator size='small' />
     );
   }
-
-  _renderDropdown() {
-    const {scrollEnabled, renderSeparator, showsVerticalScrollIndicator, keyboardShouldPersistTaps} = this.props;
-    return (
-      <ListView scrollEnabled={scrollEnabled}
-                style={styles.list}
-                dataSource={this._dataSource}
-                renderRow={this._renderRow}
-                renderSeparator={renderSeparator || this._renderSeparator}
-                automaticallyAdjustContentInsets={false}
-                showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-                keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-      />
-    );
-  }
-
+  
   get _dataSource() {
-    const {options} = this.props;
-    const ds = new ListView.DataSource({
+    const { options } = this.props;
+    const ds = new FlatList.DataSource({
       rowHasChanged: (r1, r2) => r1 !== r2
     });
     return ds.cloneWithRows(options);
+  }
+  
+  _renderDropdown() {
+    const { scrollEnabled, renderSeparator, showsVerticalScrollIndicator, keyboardShouldPersistTaps } = this.props;
+    return (
+        <FlatList
+            scrollEnabled={ scrollEnabled }
+            style={ styles.list }
+            dataSource={ this._dataSource }
+            renderRow={ this._renderRow }
+            renderSeparator={ renderSeparator || this._renderSeparator }
+            automaticallyAdjustContentInsets={ false }
+            showsVerticalScrollIndicator={ showsVerticalScrollIndicator }
+            keyboardShouldPersistTaps={ keyboardShouldPersistTaps }
+        />
+    );
   }
 
   _renderRow = (rowData, sectionID, rowID, highlightRow) => {
