@@ -84,7 +84,8 @@ export default class ModalDropdown extends Component {
       selectedIndex: props.defaultIndex
     };
   }
-
+  
+  
   componentWillReceiveProps(nextProps) {
     let {buttonText, selectedIndex} = this.state;
     const {defaultIndex, defaultValue, options} = nextProps;
@@ -277,22 +278,15 @@ export default class ModalDropdown extends Component {
     );
   }
   
-  get _dataSource() {
-    const { options } = this.props;
-    const ds = new FlatList.DataSource({
-      rowHasChanged: (r1, r2) => r1 !== r2
-    });
-    return ds.cloneWithRows(options);
-  }
-  
   _renderDropdown() {
-    const { scrollEnabled, renderSeparator, showsVerticalScrollIndicator, keyboardShouldPersistTaps } = this.props;
+    const { scrollEnabled, renderSeparator, showsVerticalScrollIndicator, keyboardShouldPersistTaps, options, keyExtractor, ...props } = this.props;
     return (
         <FlatList
+            keyExtractor={ item => (keyExtractor && keyExtractor(item)) || item.id || item.value || item.text }
+            data={ options }
             scrollEnabled={ scrollEnabled }
-            style={ styles.list }
-            dataSource={ this._dataSource }
-            renderRow={ this._renderRow }
+            { ...props }
+            renderItem={ this._renderRow }
             renderSeparator={ renderSeparator || this._renderSeparator }
             automaticallyAdjustContentInsets={ false }
             showsVerticalScrollIndicator={ showsVerticalScrollIndicator }
@@ -300,27 +294,28 @@ export default class ModalDropdown extends Component {
         />
     );
   }
-
-  _renderRow = (rowData, sectionID, rowID, highlightRow) => {
-    const {renderRow, dropdownTextStyle, dropdownTextHighlightStyle, accessible} = this.props;
-    const {selectedIndex} = this.state;
-    const key = `row_${rowID}`;
-    const highlighted = rowID == selectedIndex;
+  
+  _renderRow = ({ item, index, separators }) => {
+    const { renderRow, dropdownTextStyle, dropdownTextHighlightStyle, accessible } = this.props;
+    const { selectedIndex } = this.state;
+    const key = `row_${ index }`;
+    const highlighted = index === selectedIndex;
     const row = !renderRow ?
-      (<Text style={[
-        styles.rowText,
-        dropdownTextStyle,
-        highlighted && styles.highlightedRowText,
-        highlighted && dropdownTextHighlightStyle
-      ]}
-      >
-        {rowData}
-      </Text>) :
-      renderRow(rowData, rowID, highlighted);
+        (<Text
+            style={ [
+              styles.rowText,
+              dropdownTextStyle,
+              highlighted && styles.highlightedRowText,
+              highlighted && dropdownTextHighlightStyle
+            ] }
+        >
+          { item }
+        </Text>) :
+        renderRow(item, index, separators);
     const preservedProps = {
       key,
       accessible,
-      onPress: () => this._onRowPress(rowData, sectionID, rowID, highlightRow),
+      onPress: () => this._onRowPress(item, index, separators),
     };
     if (TOUCHABLE_ELEMENTS.find(name => name == row.type.displayName)) {
       const props = {...row.props};
@@ -366,17 +361,17 @@ export default class ModalDropdown extends Component {
       </TouchableHighlight>
     );
   };
-
-  _onRowPress(rowData, sectionID, rowID, highlightRow) {
-    const {onSelect, renderButtonText, onDropdownWillHide} = this.props;
-    if (!onSelect || onSelect(rowID, rowData) !== false) {
-      highlightRow(sectionID, rowID);
-      const value = renderButtonText && renderButtonText(rowData) || rowData.toString();
+  
+  _onRowPress(item, index, separators) {
+    const { onSelect, renderButtonText, onDropdownWillHide } = this.props;
+    if (!onSelect || onSelect(index, item) !== false) {
+      separators.highlight(index);
+      const value = renderButtonText && renderButtonText(item) || item.toString();
       this._nextValue = value;
-      this._nextIndex = rowID;
+      this._nextIndex = index;
       this.setState({
-        buttonText: value,
-        selectedIndex: rowID
+        buttonText:    value,
+        selectedIndex: index
       });
     }
     if (!onDropdownWillHide || onDropdownWillHide() !== false) {
@@ -404,7 +399,7 @@ const styles = StyleSheet.create({
     fontSize: 12
   },
   modal: {
-    flexGrow: 1
+    flexGrow: 0
   },
   dropdown: {
     position: 'absolute',
@@ -417,9 +412,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     alignSelf: 'center'
-  },
-  list: {
-    //flexGrow: 1,
   },
   rowText: {
     paddingHorizontal: 6,
